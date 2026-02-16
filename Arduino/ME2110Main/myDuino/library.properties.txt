@@ -1,0 +1,10 @@
+name=myDuino
+version=1.0.0
+author=ME2110 <marty@gatech.edu>
+maintainer=Marty Jacobson <marty@gatech.edu>
+sentence=ME2110 Motor Board Library
+paragraph=Supports ME2110 instruction.
+category=Education
+url=http://gatech.edu
+architectures=avr
+includes=myDuino.h
