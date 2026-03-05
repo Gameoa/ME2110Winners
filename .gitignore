@@ -1,0 +1,13 @@
+#Git ignore file
+#Specifies files to ignore tacking changes of
+
+#Ignore solidworks autosave and temp files to prevent unnecessary commits of large files
+~$*
+*.sldprt~
+*.sldasm~
+*.slddrw~
+*.bak
+*.tmp
+*.swp
+*.log
+*.err
