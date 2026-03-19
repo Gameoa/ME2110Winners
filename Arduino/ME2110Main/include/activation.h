@@ -11,7 +11,7 @@ enum ActivationState {
 
 // Struct to manage activation input of robot
 struct activation{
-  ActivationState m_state = ACT_OFF;
+  ActivationState m_state = ActivationState::ACT_OFF;
   ActivationState m_prevState = m_state;
   float m_activationValue = 0;
   const float m_threshhold = .6;
@@ -33,10 +33,10 @@ struct activation{
     }
     //Setting activation value based on set activation threshhold
     if (m_activationValue > m_threshhold){
-      m_state = ACT_ON;
+      m_state = ActivationState::ACT_ON;
     }
     else {
-      m_state = ACT_OFF;
+      m_state = ActivationState::ACT_OFF;
     }
     /*Serial.print("Activation: ");
     Serial.print(m_activationValue);
@@ -56,10 +56,10 @@ struct activation{
   }  
 
   int getStateInt() {
-    if(m_state == ACT_OFF){
+    if(m_state == ActivationState::ACT_OFF){
       return 0;
     }
-    else if(m_state == ACT_ON){
+    else if(m_state == ActivationState::ACT_ON){
       return 1;
     }
     return -1;

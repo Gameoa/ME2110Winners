@@ -12,10 +12,9 @@ enum DigState {
 
 // Struct to manage digital inputs
 struct digInput {
-    DigState m_state = DIG_OFF;
+    DigState m_state = DigState::DIG_OFF;
     DigState m_prevState = m_state;
     int m_port;
-    DigState m_def;
     
     digInput(int port) {
         m_port = port;
@@ -27,23 +26,23 @@ struct digInput {
         m_prevState = m_state;
         switch (input){
         case 0:
-        m_state = DIG_OFF;
+        m_state = DigState::DIG_OFF;
             break;
         case 1:
-        m_state = DIG_ON;
+        m_state = DigState::DIG_ON;
             break;
         default:
-        m_state = DIG_OFF;
+        m_state = DigState::DIG_OFF;
             break;
         }
     }
     
     int getValInt(){
         switch(m_state){
-        case DIG_ON:
+        case DigState::DIG_ON:
         return 1;
             break;
-        case DIG_OFF:
+        case DigState::DIG_OFF:
         return 0;
             break;
         default:
@@ -64,7 +63,7 @@ struct digInput {
 
 // Struct to manage digital outputs
 struct digOutput {
-    DigState state = DIG_DEFAULT;
+    DigState state = DigState::DIG_DEFAULT;
     int m_port;
     
     digOutput(int port, DigState def) {

@@ -37,6 +37,7 @@ digInput limitSwitch(4);
 activation CompInput(1);
 
 void setup() {
+  //use only for ultrasonic sensor
   //attachInterrupt(digitalPinToInterrupt(2), encHandler, CHANGE); // attach encoder channel 1
   //attachInterrupt(digitalPinToInterrupt(3), encHandler, CHANGE); // attach encoder channel 2
   Serial.begin(115200);
