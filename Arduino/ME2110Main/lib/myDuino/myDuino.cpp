@@ -191,6 +191,7 @@ void myDuino::trackerLED(int io){
 }
 
 //MOTORS
+//1 for clockwise, 2 for counterclockwise
 void myDuino::moveMotor(int mot, int dir, int spd) {
   int out1 = 0;
   int out2 = 0;
