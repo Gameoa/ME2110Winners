@@ -38,20 +38,36 @@ long unsigned int lastFireTime = 0;
 unsigned long int timeAtCenter = 0;
 //unsigned long int timeAtMoving = 0;
 
-int liftTime = 11000;
-int driveTime = 6300;
+int liftTime = 9300;
+//int liftTime = 0;
+int driveTime = 6500;
 
-int lumaFireNum = 1;
+bool extensionFired = false;
+
+int extensionFireDelay = 0;
+int extensionRetractDelay = 500;
+
+bool lumaTriggered = false;
+int lumaFireDelay = 1000;
+int currentLumaFireDelay = lumaFireDelay;
+int lumaRetractDelay = 50;
+int currentLumaRetractDelay = lumaRetractDelay;
+int lumaFireNum = 4;
+
+int koopaDelay = 37000;
+int koopaFireTime = 100;
+int currentKoopaFireTime = koopaFireTime;
+int koopaRestartTime = 100;
+int currentKoopaRestartTime = koopaRestartTime;
 
 int irCalibrationTime = 5000;
 
-int koopaDelay = 10000;
 digOutput koopaSolenoid(1, DIG_OFF);
 digOutput lumaPiston(2, DIG_OFF);
-//digOutput act1(3, DIG_OFF);
-//digOutput act2(4, DIG_OFF);
-//digInput limitSwitch(4);
+digOutput extensionPiston(3, DIG_OFF);
 
+digInput lumaSwitch(2);
+digInput driveSwitch(3);
 
 activation CompInput(1);
 
@@ -68,6 +84,8 @@ int irDist = 0;
 
 void loop() {
   CompInput.update();
+  lumaSwitch.update();
+  driveSwitch.update();
   //limitSwitch.update();
   //pot = robot.readPOT();
   //robot.doEncoder();
@@ -75,6 +93,8 @@ void loop() {
   //encoderDir = robot.encoderDir();
   //ultrasonicDist = robot.readUltrasonic();
 
+  //Sets default motor state to off at the beginning of each loop to avoid unintended motor movement due to state changes
+  //DO NOT COMMENT OUT
   robot.moveMotor(DRIVE_MOTOR, 1, 0);
   robot.moveMotor(LIFT_MOTOR, 1, 0);
 
@@ -90,13 +110,37 @@ void loop() {
     currentState = ROBOT_WAITING;
   }
 
+  //lift return code
+  if(CompInput.getState() == ACT_ON){
+    robot.moveMotor(LIFT_MOTOR, 2, 255);
+    liftTime += timeDelta;
+  }
+  else {
+    robot.moveMotor(LIFT_MOTOR, 1, 0);
+  }
+  //uncomment to allow for testing
+  currentState = ROBOT_WAITING;
+
   switch(currentState) {
     case ROBOT_WAITING:
       robot.moveMotor(DRIVE_MOTOR, 1, 0);
-      robot.moveMotor(LIFT_MOTOR, 1, 0);
+      //robot.moveMotor(LIFT_MOTOR, 1, 0);
+      
       if(CompInput.getState() == ACT_ON){
-        currentState = ROBOT_MOVING;
-        timeStart = millis();
+        if(extensionFireDelay > 0){
+          extensionFireDelay -= timeDelta;
+        }
+        else{
+          if(extensionRetractDelay > 0){
+            extensionPiston.setState(DIG_ON);
+            extensionFired = true;
+            extensionRetractDelay -= timeDelta;
+          }
+          else{
+            extensionPiston.setState(DIG_OFF);
+            currentState = ROBOT_MOVING;
+          }
+        }
       }
       break;
     case ROBOT_MOVING:
@@ -114,14 +158,33 @@ void loop() {
     case ROBOT_CENTER:
       robot.moveMotor(DRIVE_MOTOR, 1, 10);
       if(liftTime > 0){
-        //robot.moveMotor(LIFT_MOTOR, 1, 255);
+        robot.moveMotor(LIFT_MOTOR, 1, 255);
         liftTime -= timeDelta;
       }
       else{
-        //robot.moveMotor(LIFT_MOTOR, 1, 0);
+        robot.moveMotor(LIFT_MOTOR, 1, 0);
       }
 
-      if(irCalibrated == false){
+      if(lumaSwitch.getValInt() == 1 or lumaTriggered == true){
+        if(currentLumaFireDelay > 0){
+          currentLumaFireDelay -= timeDelta;
+        }
+        else{
+          if(currentLumaRetractDelay > 0){
+            lumaPiston.setState(DIG_ON);
+            lumaTriggered = true;
+            currentLumaRetractDelay -= timeDelta;
+          }
+          else{
+            lumaTriggered = false;
+            lumaPiston.setState(DIG_OFF);
+            currentLumaFireDelay = lumaFireDelay;
+            currentLumaRetractDelay = lumaRetractDelay;
+            lumaFireNum = lumaFireNum - 1;
+          }
+        }
+      }
+      /* if(irCalibrated == false){
         if(irDist > irmax){
           irmax = irDist;
         }
@@ -148,13 +211,26 @@ void loop() {
             lumaPiston.setState(DIG_OFF);
           }
         }
-      }
+      } */
 
       if(koopaDelay > 0){
         koopaDelay -= timeDelta;
       }
       else{
-        koopaSolenoid.setState(DIG_ON);
+        if(currentKoopaFireTime > 0){
+          koopaSolenoid.setState(DIG_ON);
+          currentKoopaFireTime -= timeDelta;
+        }
+        else{
+          if(currentKoopaRestartTime > 0){
+            koopaSolenoid.setState(DIG_OFF);
+            currentKoopaRestartTime -= timeDelta;
+          }
+          else{
+            currentKoopaFireTime = koopaFireTime;
+            currentKoopaRestartTime = koopaRestartTime;
+          }
+        }
       }
       break;
   }
@@ -180,17 +256,28 @@ void loop() {
   Serial.print(" ");
   Serial.print(timeDelta);
   Serial.print(" ");
+  Serial.print(extensionFireDelay);
+  Serial.print(" ");
+  Serial.print(extensionRetractDelay);
+  Serial.print(" ");
   Serial.print(driveTime);
   Serial.print(" ");
   Serial.print(liftTime);
   Serial.print(" ");
-  Serial.print(irCalibrated);
+  Serial.print(lumaTriggered);
   Serial.print(" ");
-  Serial.print(irDist);
+  Serial.print(currentLumaFireDelay);
   Serial.print(" ");
-  Serial.print(irmax);
+  Serial.print(currentLumaRetractDelay);
   Serial.print(" ");
-  Serial.print(irmin);
+  Serial.print(koopaDelay);
+  //Serial.print(irCalibrated);
+  //Serial.print(" ");
+  //Serial.print(irDist);
+  //Serial.print(" ");
+  //Serial.print(irmax);
+  //Serial.print(" ");
+  //Serial.print(irmin);
   Serial.println();
   
   delay(20); // Short delay to avoid flooding the serial monitor
