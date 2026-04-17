@@ -1,6 +1,7 @@
 #include <myDuino.h>
 #include <digital.h>
 #include <activation.h>
+#include <lift.h>
 #include <Arduino.h>
 
 myDuino robot(1);
@@ -38,26 +39,29 @@ long unsigned int lastFireTime = 0;
 unsigned long int timeAtCenter = 0;
 //unsigned long int timeAtMoving = 0;
 
-int liftTime = 9300;
+long int liftTime = 9300;
+long int liftHoldTime = 5000;
 //int liftTime = 0;
-int driveTime = 6500;
+long int driveTime = 7000;
 
 bool extensionFired = false;
 
 int extensionFireDelay = 0;
-int extensionRetractDelay = 500;
+int extensionRetractDelay = 1000;
 
 bool lumaTriggered = false;
-int lumaFireDelay = 1000;
-int currentLumaFireDelay = lumaFireDelay;
-int lumaRetractDelay = 50;
-int currentLumaRetractDelay = lumaRetractDelay;
+long int lumaFireDelay = 1000                                                              ;
+long int currentLumaFireDelay = lumaFireDelay;
+long int lumaRetriggerDelay = 1000;
+long int currentLumaRetriggerDelay = 0;
+long int lumaRetractDelay = 50;
+long int currentLumaRetractDelay = lumaRetractDelay;
 int lumaFireNum = 4;
 
-int koopaDelay = 37000;
+long int koopaDelay = 35000;
 int koopaFireTime = 100;
 int currentKoopaFireTime = koopaFireTime;
-int koopaRestartTime = 100;
+int koopaRestartTime = 500;
 int currentKoopaRestartTime = koopaRestartTime;
 
 int irCalibrationTime = 5000;
@@ -66,8 +70,15 @@ digOutput koopaSolenoid(1, DIG_OFF);
 digOutput lumaPiston(2, DIG_OFF);
 digOutput extensionPiston(3, DIG_OFF);
 
+int liftSwitchPort = 3;
+
 digInput lumaSwitch(2);
-digInput driveSwitch(3);
+digInput liftSwitch(liftSwitchPort);
+
+//normal code
+Lift marioLift(LIFT_MOTOR, false, 300, 9300, liftSwitchPort);
+//retract code
+//Lift marioLift(LIFT_MOTOR, false, -10000, 0, liftSwitchPort);
 
 activation CompInput(1);
 
@@ -85,7 +96,8 @@ int irDist = 0;
 void loop() {
   CompInput.update();
   lumaSwitch.update();
-  driveSwitch.update();
+  liftSwitch.update();
+  marioLift.update(millis());
   //limitSwitch.update();
   //pot = robot.readPOT();
   //robot.doEncoder();
@@ -110,21 +122,19 @@ void loop() {
     currentState = ROBOT_WAITING;
   }
 
-  //lift return code
+  /* //lift return code
   if(CompInput.getState() == ACT_ON){
-    robot.moveMotor(LIFT_MOTOR, 2, 255);
-    liftTime += timeDelta;
+    marioLift.moveDown();
   }
   else {
-    robot.moveMotor(LIFT_MOTOR, 1, 0);
+    marioLift.stop();
   }
   //uncomment to allow for testing
-  currentState = ROBOT_WAITING;
+  currentState = ROBOT_WAITING; */
 
   switch(currentState) {
     case ROBOT_WAITING:
-      robot.moveMotor(DRIVE_MOTOR, 1, 0);
-      //robot.moveMotor(LIFT_MOTOR, 1, 0);
+      marioLift.stop();
       
       if(CompInput.getState() == ACT_ON){
         if(extensionFireDelay > 0){
@@ -146,7 +156,7 @@ void loop() {
     case ROBOT_MOVING:
       if(driveTime > 0){
         robot.moveMotor(DRIVE_MOTOR, 1, 255);
-        robot.moveMotor(LIFT_MOTOR, 1, 0);
+        marioLift.stop();
         driveTime -= timeDelta;
       }
       else{
@@ -156,23 +166,40 @@ void loop() {
       }
       break;
     case ROBOT_CENTER:
-      robot.moveMotor(DRIVE_MOTOR, 1, 10);
+      robot.moveMotor(DRIVE_MOTOR, 1, 127);
       if(liftTime > 0){
-        robot.moveMotor(LIFT_MOTOR, 1, 255);
+        //robot.moveMotor(LIFT_MOTOR, 1, 255);
+        marioLift.moveUp();
         liftTime -= timeDelta;
       }
+      else if(liftHoldTime > 0){
+        liftHoldTime -= timeDelta;
+        marioLift.stop();
+      }
       else{
-        robot.moveMotor(LIFT_MOTOR, 1, 0);
+        marioLift.moveDown();
       }
 
-      if(lumaSwitch.getValInt() == 1 or lumaTriggered == true){
+      if(lumaSwitch.getValInt() == 1){
+        if(currentLumaRetriggerDelay <= 0){
+          lumaTriggered = true;
+          currentLumaRetriggerDelay = lumaRetriggerDelay;
+        }
+      }
+
+      if(currentLumaRetriggerDelay > 0){
+        currentLumaRetriggerDelay -= timeDelta;
+      }
+
+      if(lumaTriggered == true){
+        lumaTriggered = true;
         if(currentLumaFireDelay > 0){
           currentLumaFireDelay -= timeDelta;
         }
         else{
           if(currentLumaRetractDelay > 0){
             lumaPiston.setState(DIG_ON);
-            lumaTriggered = true;
+            //lumaTriggered = true;
             currentLumaRetractDelay -= timeDelta;
           }
           else{
@@ -184,6 +211,27 @@ void loop() {
           }
         }
       }
+
+      /* if(lumaSwitch.getValInt() == 1 or lumaTriggered == true){
+        lumaTriggered = true;
+        if(currentLumaFireDelay > 0){
+          currentLumaFireDelay -= timeDelta;
+        }
+        else{
+          if(currentLumaRetractDelay > 0){
+            lumaPiston.setState(DIG_ON);
+            //lumaTriggered = true;
+            currentLumaRetractDelay -= timeDelta;
+          }
+          else{
+            lumaTriggered = false;
+            lumaPiston.setState(DIG_OFF);
+            currentLumaFireDelay = lumaFireDelay;
+            currentLumaRetractDelay = lumaRetractDelay;
+            lumaFireNum = lumaFireNum - 1;
+          }
+        }
+      } */
       /* if(irCalibrated == false){
         if(irDist > irmax){
           irmax = irDist;
@@ -211,6 +259,10 @@ void loop() {
             lumaPiston.setState(DIG_OFF);
           }
         }
+      } */
+
+      /* if(CompInput.getState() == ACT_OFF){
+        koopaDelay = 37000;
       } */
 
       if(koopaDelay > 0){
@@ -252,6 +304,18 @@ void loop() {
       break;
   }
   Serial.print(" ");
+  switch(currentState){
+    case ROBOT_WAITING:
+      Serial.print("1");
+      break;
+    case ROBOT_MOVING:
+      Serial.print("2");
+      break;
+    case ROBOT_CENTER:
+      Serial.print("3");
+      break;
+  }
+  Serial.print(" ");
   Serial.print(timeNow);
   Serial.print(" ");
   Serial.print(timeDelta);
@@ -262,7 +326,11 @@ void loop() {
   Serial.print(" ");
   Serial.print(driveTime);
   Serial.print(" ");
-  Serial.print(liftTime);
+  Serial.print(marioLift.getPosition());
+  Serial.print(" ");
+  Serial.print(liftSwitch.getValInt());
+  Serial.print(" ");
+  Serial.print(marioLift.atBottomLimit());
   Serial.print(" ");
   Serial.print(lumaTriggered);
   Serial.print(" ");
