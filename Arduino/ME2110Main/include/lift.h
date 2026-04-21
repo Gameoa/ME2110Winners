@@ -16,6 +16,8 @@ public:
 
     void moveUp();
     void moveDown();
+    void moveTargetUp(int target);
+    void moveTargetDown(int target);
     void stop();
 
     long int getPosition() const;
@@ -102,6 +104,24 @@ void Lift::moveDown() {
         } else {
             robot.moveMotor(_port, 2, 255); // 2 = lower
         }
+    }
+}
+
+void Lift::moveTargetUp(int target) {
+    if (_position < target) {
+        moveUp();
+    }
+    else {
+        stop();
+    }
+}
+
+void Lift::moveTargetDown(int target) {
+    if(_position > target) {
+        moveDown();
+    }
+    else {
+        stop();
     }
 }
 

@@ -40,7 +40,7 @@ unsigned long int timeAtCenter = 0;
 //unsigned long int timeAtMoving = 0;
 
 long int liftTime = 9300;
-long int liftHoldTime = 5000;
+long int liftHoldTime = 3000;
 //int liftTime = 0;
 long int driveTime = 7000;
 
@@ -58,7 +58,7 @@ long int lumaRetractDelay = 50;
 long int currentLumaRetractDelay = lumaRetractDelay;
 int lumaFireNum = 4;
 
-long int koopaDelay = 35000;
+long int koopaDelay = 29000;
 int koopaFireTime = 100;
 int currentKoopaFireTime = koopaFireTime;
 int koopaRestartTime = 500;
@@ -158,6 +158,12 @@ void loop() {
         robot.moveMotor(DRIVE_MOTOR, 1, 255);
         marioLift.stop();
         driveTime -= timeDelta;
+        if(driveTime < 5000) {
+          marioLift.moveTargetUp(2000);
+        }
+        else{
+          marioLift.stop();
+        }
       }
       else{
         currentState = ROBOT_CENTER;
